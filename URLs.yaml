@@ -1,0 +1,8 @@
+Regex_List:
+- (http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?
+URLs:
+- sites.google.com
+- en.wikipedia.org
+- youtube.com
+- nordea.fi
+- cgi.fi
