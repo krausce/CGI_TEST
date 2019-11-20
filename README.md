@@ -32,7 +32,7 @@ see it being useful.
 - Date: 14-11-2019 Time: 01:38:00:059621_AM| Response Time: 0.03 s | URL: https://www.youtube.com | Regex:
 
 ## Tech Used ##
-    Python 3
+    Python 3.7.3
     Regular Expressions
     YAML Argument Config File
     [PEP8] Style
