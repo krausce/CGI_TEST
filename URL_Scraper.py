@@ -4,6 +4,7 @@ import time
 import re
 from signal import signal, SIGINT
 import sys
+from concurrent.futures import ThreadPoolExecutor
 import urllib.request as request
 import yaml
 
@@ -35,7 +36,19 @@ class URL_Scraper():
         self.URL_key = URL_key
         self.URL_file = URL_file
         self.get_params()
+        self.format_URL()
         self.scrape_data()
+
+    def format_URL(self):
+        for i in range(len(self.URL_list)):
+            url = self.URL_list[i]
+            if not(url.__contains__('http')):
+                if not(url.__contains__('www.')):
+                    url = 'https://www.' + url
+
+                else:
+                    url = 'https://' + url
+            self.URL_list[i] = url
 
     def get_params(self):
         '''
@@ -97,47 +110,43 @@ class URL_Scraper():
             self.url_source = input(
                 'The provided input file is empty. Enter a different file or terminate the program with Ctrl-C: ')
 
-    def scrape_data(self):
-
-        print('Beginning data scraping.')
+    def extract_text(self, url):
 
         with open(self.out_file, 'a') as out_file:
-
-            current_time = dt.now().strftime("Date: %d-%m-%Y Time: %I:%M:%S:%f_%p")
-
-            # Iterate through all URLs one at a time, testing each regex on that URL
-            # before advancing to the next URL. This will group the results in the log
-            # file.
-            for url in self.URL_list:
-                if not(url[:4] == 'http'):
-                    if not(url[:4] == 'www.'):
-                        url = 'https://www.' + url
-
-                    else:
-                        url = 'https://' + url
-
+  
+            for r in self.regex_list:
                 try:
                     current_time = dt.now().strftime("Date: %d-%m-%Y Time: %I:%M:%S:%f_%p")
-                    start = time.clock()
+                    start = time.perf_counter()
                     req = request.Request(url)
                     response = request.urlopen(req)
                     raw_text = response.read()
-                    response_time = '%0.2f s' % (time.clock() - start)
-
-                    for regex in self.regex_list:
-                        scraped_data = re.findall(regex, str(raw_text))
-                        if not (len(scraped_data) > 0):
-                            print(
-                                current_time + '| Response Time: {} | No data scraped using regex: {}'.format(
-                                    response_time, regex), file=out_file)
-                        else:
-                            print(current_time + '| Response Time: {} | URL: {} | Regex: {}\nData Scraped: {}\n'.format(
-                                response_time, url, regex, scraped_data), file=out_file)
-
+                    response_time = '%0.2f s' % (time.perf_counter() - start)
+                    scraped_data = re.findall(r, str(raw_text))
+                    if not (len(scraped_data) > 0):
+                        print(
+                            current_time + '| Response Time: {} | No data scraped using regex: {}'.format(
+                                response_time, r), file=out_file)
+                    else:
+                        print(current_time + '| Response Time: {} | URL: {} | Regex: {}\nData Scraped: {}\n'.format(
+                            response_time, url, r, scraped_data), file=out_file)
                 except:
                     print('\n' + current_time +
-                          "| URL: {1} | {0}\n".format(sys.exc_info()[0], url), file=out_file)
+                            "| URL: {1} | {0}\n".format(sys.exc_info()[0], url), file=out_file)
                     continue
+
+    def scrape_data(self, start_time=time.perf_counter()):
+
+        print('Beginning data scraping.')       
+
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            executor.map(self.extract_text, self.URL_list)
+
+        with open(self.out_file, 'a') as out_file:
+            iteration_time = '%0.2f s' % (time.perf_counter() - start_time)
+            print('Total run time for this iteration: {}\n'.format(iteration_time), file=out_file)
+
+        
 
 
 iter_count = {'iter_count': 1}
